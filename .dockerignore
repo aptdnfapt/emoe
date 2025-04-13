@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.git
+.gitignore
+.env
+bot_config.json
+chat_log.jsonl
+README.md
+Dockerfile
+.dockerignore

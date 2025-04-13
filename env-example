@@ -1,0 +1,25 @@
+# Replace with your actual Discord bot token
+DISCORD_BOT_TOKEN=
+
+# Replace with the URL of your Ollama API endpoint
+# Example: OLLAMA_API_URL=http://127.0.0.1:11434
+# default 
+OLLAMA_API_URL=http://localhost:11434
+
+# --- Word Replacements (Case-Insensitive) ---
+# Define word pairs for replacement in the bot's responses. The replacement ignores case (uppercase/lowercase).
+# Format: comma-separated pairs of "word_to_find:replacement_word"
+# Example: WORD_REPLACEMENTS=gaven:moe,anotherWord:somethingElse,TEST:demo
+# Ensure there are no extra spaces around the commas or colons.
+WORD_REPLACEMENTS=
+
+# --- Probabilistic Replacements (Case-Insensitive) ---
+# Define rules for replacing words/emojis with a certain probability, choosing randomly from a list of options.
+# Format: target|probability|option1,option2,...;target2|prob2|optA,optB,...
+# - target: The word/emoji/phrase to find (case-insensitive).
+# - probability: A number between 0.0 and 1.0 (e.g., 0.4 for 40% chance).
+# - option1,option2,...: Comma-separated list of possible replacements.
+# - Rules are separated by semicolons (;).
+# Example: PROBABILISTIC_REPLACEMENTS=💀|0.5|🍆,😘,🦅;👍|0.7|💀
+PROBABILISTIC_REPLACEMENTS=
+

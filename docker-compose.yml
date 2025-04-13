@@ -1,0 +1,30 @@
+version: '4.8'
+
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama_service
+    volumes:
+      - ollama_data:/root/.ollama
+    # Expose port for potential external access/debugging (optional)
+    # ports:
+    #   - "11434:11434"
+    restart: unless-stopped
+    # Note: No GPU configuration needed for CPU execution
+
+  bot:
+    build: . # Build the image from the Dockerfile in the current directory
+    container_name: moe_bot_service
+    env_file:
+      - .env # Load environment variables from .env file
+    volumes:
+      # Mount config and log files for persistence
+      - ./bot_config.json:/app/bot_config.json
+      - ./chat_log.jsonl:/app/chat_log.jsonl # Mount only if logging is enabled
+    depends_on:
+      - ollama # Wait for ollama service to be available (doesn't guarantee readiness)
+    restart: unless-stopped
+
+volumes:
+  ollama_data: # Define the named volume for Ollama model persistence
+
