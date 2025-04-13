@@ -2,12 +2,18 @@
 
 This guide explains how to set up and run the emoe aka  Evil Moe Discord Bot using Docker and Docker Compose. This method bundles the bot and its Ollama dependency into manageable containers. 
 
+here is some examples of chat 
+![1](chat-ss/moe1.webp)
+![2](chat-ss/moe4.webp)
+
 ## Prerequisites
 
 *   **VPS or A local machine :** it can be linux  / windows / mac : takes around 4gb of ram and 6gb of storage . No gpu is needed a cpu with 2 core around 2.5 ghz will be enough and fast. 
 *   **Git:** To clone the repository.
 *   **Docker & Docker Compose:** Required to build and run the containerized application.
 *   **Discord Bot Token:** A secret token needed for the bot to connect to Discord.
+
+
 
 ### Getting a Discord Bot Token
 
