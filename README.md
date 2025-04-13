@@ -3,7 +3,11 @@
 This guide explains how to set up and run the emoe aka  Evil Moe Discord Bot using Docker and Docker Compose. This method bundles the bot and its Ollama dependency into manageable containers. 
 
 here is some examples of chat 
+
+
+
 ![1](chat-ss/moe1.webp)
+
 ![2](chat-ss/moe4.webp)
 
 ## Prerequisites
