@@ -120,4 +120,4 @@ https://huggingface.co/mradermacher/DialoGPT-large-gavin-GGUF
 ## Special Thanks:
 Emoe was inspired by https://github.com/monk-afk/moe based and made using same model but fine-tuned dialogpt by mradermacher . I call it evil moe because the main model Dialogpt was trained by microsoft on reddit data . But still it doesnt have the reddit bs and caos. Emoe's base model aka DialoGPT-large-gavin was finned tuned to be more like that fashion . And I can promise you that it nailed it . Enjoy . 
 
-# Also check my repo timewaste
+# timewaste
