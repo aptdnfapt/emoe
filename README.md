@@ -1,9 +1,10 @@
-# Moe Discord Bot (Docker Compose Setup)
+# Evil Moe Discord Bot (Docker Compose Setup)
 
-This guide explains how to set up and run the Moe Discord Bot using Docker and Docker Compose. This method bundles the bot and its Ollama dependency into manageable containers.
+This guide explains how to set up and run the emoe aka  Evil Moe Discord Bot using Docker and Docker Compose. This method bundles the bot and its Ollama dependency into manageable containers. 
 
 ## Prerequisites
 
+*   **VPS or A local machine :** it can be linux  / windows / mac : takes around 4gb of ram and 6gb of storage . No gpu is needed a cpu with 2 core around 2.5 ghz will be enough and fast. 
 *   **Git:** To clone the repository.
 *   **Docker & Docker Compose:** Required to build and run the containerized application.
 *   **Discord Bot Token:** A secret token needed for the bot to connect to Discord.
@@ -114,4 +115,7 @@ The `.env` file controls the bot's core settings and customization.
     3.  `docker-compose up -d`
 *   **Uninstall:** Run `./uninstall.sh` from the `emoe` directory.
 
-# timewaste
+## hf repo
+https://huggingface.co/mradermacher/DialoGPT-large-gavin-GGUF
+## Special Thanks:
+emoe was inspired by https://github.com/monk-afk/moe bassed and made using same model but fine-tuned dialogpt by mradermacher . I call it evil moe because the main model Dialogpt was trained by microsoft on reddit data . But still it doesnt have the reddit bs and coase. emoe's base model aka DialoGPT-large-gavin was finned tuned to be more like that fashion . And i can promise you that it nailed it . Enjoy . 

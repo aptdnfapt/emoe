@@ -34,22 +34,37 @@ fi
 
 # 3. Update .env file
 echo "Configuring Discord Bot Token..."
-# Check if token is already set (basic check for placeholder)
-if grep -q "DISCORD_BOT_TOKEN=YOUR_DISCORD_BOT_TOKEN_HERE" "$ENV_FILE" || ! grep -q "DISCORD_BOT_TOKEN=.*" "$ENV_FILE"; then
+TOKEN_LINE_EXISTS=$(grep -c "^DISCORD_BOT_TOKEN=" "$ENV_FILE")
+CURRENT_TOKEN=$(grep "^DISCORD_BOT_TOKEN=" "$ENV_FILE" | cut -d '=' -f2-)
+
+# Check if token line exists and has a non-empty, non-placeholder value
+if [ "$TOKEN_LINE_EXISTS" -eq 1 ] && [ -n "$CURRENT_TOKEN" ] && [ "$CURRENT_TOKEN" != "YOUR_DISCORD_BOT_TOKEN_HERE" ]; then
+  echo "Discord Bot Token seems to be already set in $ENV_FILE. Skipping prompt."
+else
+  # Prompt for token if line is missing, empty, or has placeholder
   read -p "Please enter your Discord Bot Token: " DISCORD_TOKEN
   if [ -z "$DISCORD_TOKEN" ]; then
     echo "Error: Discord Bot Token cannot be empty."
     exit 1
   fi
-  # Use sed to replace the line. Handles empty or placeholder value.
-  # Using a different delimiter for sed in case token has slashes
-  sed -i.bak "s|^DISCORD_BOT_TOKEN=.*|DISCORD_BOT_TOKEN=$DISCORD_TOKEN|" "$ENV_FILE"
-  rm "${ENV_FILE}.bak" # Remove backup file created by sed -i
+
+  # Check again if the line exists to decide whether to replace or append
+  if grep -q "^DISCORD_BOT_TOKEN=" "$ENV_FILE"; then
+    # Line exists, replace it using sed
+    echo "Updating existing DISCORD_BOT_TOKEN line..."
+    # Using a different delimiter (#) for sed in case token has slashes or other special chars
+    sed -i.bak "s#^DISCORD_BOT_TOKEN=.*#DISCORD_BOT_TOKEN=$DISCORD_TOKEN#" "$ENV_FILE"
+    rm -f "${ENV_FILE}.bak" # Remove backup file created by sed -i
+  else
+    # Line doesn't exist, append it
+    echo "Adding DISCORD_BOT_TOKEN line..."
+    echo "" >>"$ENV_FILE" # Add a newline just in case file doesn't end with one
+    echo "DISCORD_BOT_TOKEN=$DISCORD_TOKEN" >>"$ENV_FILE"
+  fi
   echo ".env file updated with your token."
-else
-  echo "Discord Bot Token seems to be already set in $ENV_FILE. Skipping prompt."
 fi
-# Verify OLLAMA_API_URL is set for compose
+
+# Verify OLLAMA_API_URL is set for compose (keep this check)
 if ! grep -q "OLLAMA_API_URL=http://ollama:11434" "$ENV_FILE"; then
   echo "Warning: OLLAMA_API_URL in $ENV_FILE might not be set correctly for docker-compose."
   echo "It should usually be 'http://ollama:11434'."
