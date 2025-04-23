@@ -97,14 +97,14 @@ The script will:
     *   `./bot_config.json` & `./chat_log.jsonl`: Links files inside the bot container to files in your `emoe` directory on your host machine, making the bot's configuration and logs persistent.
 *   **install.sh:** Automates the setup steps: prerequisite checks, `.env` configuration, placeholder file creation, Ollama model download, and starting the services via `docker-compose up -d`.
 *   **uninstall.sh:** Automates cleanup: stops and removes containers, removes the custom bot image, removes the Ollama data volume, removes the base Ollama image, and removes the host config/log files.
-
+     /
 ## Configuration Details (`.env` File)
 
 The `.env` file controls the bot's core settings and customization.
 
 *   `DISCORD_BOT_TOKEN`: **(Required)** Your unique bot token obtained from the Discord Developer Portal. The `install.sh` script will prompt you for this.
 *   `OLLAMA_API_URL`: **(Required for Docker Compose)** Should be set to `http://ollama:11434` to allow the bot container to communicate with the Ollama container service. Do not change this unless you have a custom Docker network setup.
-*   `WORD_REPLACEMENTS`: (Optional) Define standard, case-insensitive word or phrase replacements that always happen.
+*   `WORD_R/EPLACEMENTS`: (Optional) Define standard, case-insensitive word or phrase replacements that always happen.
     *   **Format:** Comma-separated pairs of `word_to_find:replacement_word`. No extra spaces around `:` or `,`.
     *   **Example:** `WORD_REPLACEMENTS=gaven:moe,hello there:greetings`
 *   `PROBABILISTIC_REPLACEMENTS`: (Optional) Define case-insensitive replacements that happen based on chance.
@@ -131,3 +131,4 @@ https://huggingface.co/mradermacher/DialoGPT-large-gavin-GGUF
 Emoe was inspired by https://github.com/monk-afk/moe based and made using same model but fine-tuned dialogpt by mradermacher . I call it evil moe because the main model Dialogpt was trained by microsoft on reddit data . But still it doesnt have the reddit bs and caos. Emoe's base model aka DialoGPT-large-gavin was finned tuned to be more like that fashion . And I can promise you that it nailed it . Enjoy . 
 
 # timewaste
+Check out more proj? like https://github.com/aptdnfapt/OliveOwl.git 
