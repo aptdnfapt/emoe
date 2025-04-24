@@ -1,6 +1,6 @@
 # Evil Moe Discord Bot (Docker Compose Setup)
 
-This guide explains how to set up and run the emoe aka  Evil Moe Discord Bot using Docker and Docker Compose. This method bundles the bot and its Ollama dependency into manageable containers. 
+This guide explains how to set up and run the emoe aka  Evil Moe Discord Bot using Docker and Docker Compose. This method bundles the bot and its Ollama dependency into manageable containers.If you cant host the bot on your own and had errors let me know in discord my id is idc.btw also if you want the bot and doesnt have vps , dm i maybe able to help with my vps 
 
 here is some examples of chat 
 
