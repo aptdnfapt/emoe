@@ -72,7 +72,7 @@ CONFIG_FILE = "bot_config.json"
 LOG_FILE = "chat_log.jsonl"
 
 # --- Globals ---
-dedicated_channel_id = None # Will be loaded from config
+dedicated_channel_ids = [] # Will be loaded from config as a list
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
@@ -84,25 +84,34 @@ bot = commands.Bot(command_prefix="emoe ", intents=intents) # Set prefix here
 # --- Config Persistence ---
 def load_config():
     """Loads configuration from the JSON file."""
-    global dedicated_channel_id
+    global dedicated_channel_ids
     try:
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
-                dedicated_channel_id = config.get('dedicated_channel_id')
-                print(f"Loaded config: Dedicated channel ID = {dedicated_channel_id}")
+                # Handle both old single ID format and new list format
+                loaded_id = config.get('dedicated_channel_id')
+                if isinstance(loaded_id, list):
+                    dedicated_channel_ids = loaded_id
+                elif isinstance(loaded_id, int):
+                    # Convert old single ID to a list
+                    dedicated_channel_ids = [loaded_id]
+                else:
+                    dedicated_channel_ids = [] # Default to empty list if neither
+                print(f"Loaded config: Dedicated channel IDs = {dedicated_channel_ids}")
         else:
-            print("Config file not found. Will create one if channel is set.")
+            print("Config file not found. Initializing with empty list.")
+            dedicated_channel_ids = []
     except (json.JSONDecodeError, IOError) as e:
         print(f"Error loading config file: {e}")
-        dedicated_channel_id = None
+        dedicated_channel_ids = [] # Default to empty list on error
 
 def save_config():
     """Saves the current configuration to the JSON file."""
     try:
         with open(CONFIG_FILE, 'w') as f:
-            json.dump({'dedicated_channel_id': dedicated_channel_id}, f, indent=4)
-        print(f"Saved config: Dedicated channel ID = {dedicated_channel_id}")
+            json.dump({'dedicated_channel_ids': dedicated_channel_ids}, f, indent=4)
+        print(f"Saved config: Dedicated channel IDs = {dedicated_channel_ids}")
     except IOError as e:
         print(f"Error saving config file: {e}")
 
@@ -202,7 +211,7 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     """Called when a message is sent in a channel the bot can see."""
-    global dedicated_channel_id
+    global dedicated_channel_ids
 
     # Ignore messages from the bot itself
     if message.author == bot.user:
@@ -215,54 +224,128 @@ async def on_message(message):
 
     # --- Regular Message Handling (Not a command) ---
 
-    # Check if it's in the dedicated channel
-    if dedicated_channel_id and message.channel.id == dedicated_channel_id:
+    # Check if it's in one of the dedicated channels
+    if message.channel.id in dedicated_channel_ids:
         async with message.channel.typing():
             user_input = message.content
             bot_output = await get_ollama_response(user_input)
             if bot_output: # Only send and log if Ollama returned something
                 await message.reply(bot_output)
                 log_chat(user_input, bot_output) # Log the interaction
-        return # Don't process further if it was in the dedicated channel
+        return # Don't process further if it was in a dedicated channel
 
-    # Check if the message is in a public channel and contains trigger words
-    if not dedicated_channel_id or message.channel.id != dedicated_channel_id:
-        message_lower = message.content.lower()
-        if any(trigger in message_lower for trigger in REPLY_TRIGGERS):
-            async with message.channel.typing():
-                user_input = message.content
-                bot_output = await get_ollama_response(user_input)
-                if bot_output: # Only send and log if Ollama returned something
-                    await message.reply(bot_output)
-                    log_chat(user_input, bot_output) # Log the interaction
-            return
+    # If not in a dedicated channel, check if the message contains trigger words
+    message_lower = message.content.lower()
+    if any(trigger in message_lower for trigger in REPLY_TRIGGERS):
+        async with message.channel.typing():
+            user_input = message.content
+            bot_output = await get_ollama_response(user_input)
+            if bot_output: # Only send and log if Ollama returned something
+                await message.reply(bot_output)
+                log_chat(user_input, bot_output) # Log the interaction
+        return
 
 # --- Discord Prefix Commands ---
-@bot.command(name="setchannel", help="Sets the dedicated channel for Emoe Bot interactions. Usage: emoe setchannel #channel-name")
+@bot.command(name="addchannel", help="Adds a channel to the list of dedicated channels for Emoe Bot interactions. Usage: emoe addchannel #channel-name")
 @commands.has_permissions(administrator=True) # Check for administrator permissions
-async def setchannel_command(ctx: commands.Context, channel: discord.TextChannel):
-    """Command to set the dedicated channel."""
-    global dedicated_channel_id
-    dedicated_channel_id = channel.id
-    save_config() # Save the new channel ID to the config file
-    await ctx.send(f"Emoe Bot dedicated channel set to {channel.mention}", delete_after=10) # Send confirmation and delete after a bit
+async def addchannel_command(ctx: commands.Context, channel: discord.TextChannel):
+    """Command to add a dedicated channel."""
+    global dedicated_channel_ids
+    if channel.id not in dedicated_channel_ids:
+        dedicated_channel_ids.append(channel.id)
+        save_config() # Save the updated list of channel IDs
+        await ctx.send(f"Channel {channel.mention} added to the dedicated channels list.", delete_after=10) # Send confirmation
+    else:
+        await ctx.send(f"Channel {channel.mention} is already in the dedicated channels list.", delete_after=10) # Inform if already exists
     try:
         await ctx.message.delete() # Try to delete the command message
     except discord.Forbidden:
         pass # Ignore if bot doesn't have permission to delete messages
 
-@setchannel_command.error
-async def setchannel_command_error(ctx: commands.Context, error):
-    """Error handler for the setchannel command."""
+# Optionally, keep the old setchannel command or remove it.
+# For now, let's rename setchannel to addchannel and update its help text.
+# If you want a command to remove channels or list them, we can add those next.
+
+@addchannel_command.error
+async def addchannel_command_error(ctx: commands.Context, error):
+    """Error handler for the addchannel command."""
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("You need administrator permissions to use this command.", delete_after=10)
     elif isinstance(error, commands.MissingRequiredArgument):
-         await ctx.send(f"You need to specify a channel. Usage: `{bot.command_prefix}setchannel #channel-name`", delete_after=10)
+         await ctx.send(f"You need to specify a channel. Usage: `{bot.command_prefix}addchannel #channel-name`", delete_after=10)
     elif isinstance(error, commands.ChannelNotFound):
          await ctx.send(f"Could not find the channel '{error.argument}'. Please mention the channel correctly (`#channel-name`).", delete_after=10)
     else:
         await ctx.send(f"An unexpected error occurred: {error}", delete_after=10)
-        print(f"Error in setchannel command: {error}")
+        print(f"Error in addchannel command: {error}")
+    try:
+        await ctx.message.delete() # Try to delete the command message
+    except discord.Forbidden:
+        pass # Ignore if bot doesn't have permission to delete messages
+
+@bot.command(name="removechannel", help="Removes a channel from the list of dedicated channels. Usage: emoe removechannel #channel-name")
+@commands.has_permissions(administrator=True) # Check for administrator permissions
+async def removechannel_command(ctx: commands.Context, channel: discord.TextChannel):
+    """Command to remove a dedicated channel."""
+    global dedicated_channel_ids
+    if channel.id in dedicated_channel_ids:
+        dedicated_channel_ids.remove(channel.id)
+        save_config() # Save the updated list of channel IDs
+        await ctx.send(f"Channel {channel.mention} removed from the dedicated channels list.", delete_after=10) # Send confirmation
+    else:
+        await ctx.send(f"Channel {channel.mention} is not in the dedicated channels list.", delete_after=10) # Inform if not in list
+    try:
+        await ctx.message.delete() # Try to delete the command message
+    except discord.Forbidden:
+        pass # Ignore if bot doesn't have permission to delete messages
+
+@removechannel_command.error
+async def removechannel_command_error(ctx: commands.Context, error):
+    """Error handler for the removechannel command."""
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("You need administrator permissions to use this command.", delete_after=10)
+    elif isinstance(error, commands.MissingRequiredArgument):
+         await ctx.send(f"You need to specify a channel. Usage: `{bot.command_prefix}removechannel #channel-name`", delete_after=10)
+    elif isinstance(error, commands.ChannelNotFound):
+         await ctx.send(f"Could not find the channel '{error.argument}'. Please mention the channel correctly (`#channel-name`).", delete_after=10)
+    else:
+        await ctx.send(f"An unexpected error occurred: {error}", delete_after=10)
+        print(f"Error in removechannel command: {error}")
+    try:
+        await ctx.message.delete() # Try to delete the command message
+    except discord.Forbidden:
+        pass # Ignore if bot doesn't have permission to delete messages
+
+
+@bot.command(name="listchannels", help="Lists the dedicated channels for Emoe Bot interactions.")
+@commands.has_permissions(administrator=True) # Check for administrator permissions
+async def listchannels_command(ctx: commands.Context):
+    """Command to list dedicated channels."""
+    global dedicated_channel_ids
+    if not dedicated_channel_ids:
+        await ctx.send("No dedicated channels are currently set.", delete_after=10)
+    else:
+        channel_mentions = []
+        for channel_id in dedicated_channel_ids:
+            channel = bot.get_channel(channel_id)
+            if channel:
+                channel_mentions.append(channel.mention)
+            else:
+                channel_mentions.append(f"Unknown Channel (ID: {channel_id})")
+        await ctx.send(f"Dedicated channels: {', '.join(channel_mentions)}", delete_after=10)
+    try:
+        await ctx.message.delete() # Try to delete the command message
+    except discord.Forbidden:
+        pass # Ignore if bot doesn't have permission to delete messages
+
+@listchannels_command.error
+async def listchannels_command_error(ctx: commands.Context, error):
+    """Error handler for the listchannels command."""
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("You need administrator permissions to use this command.", delete_after=10)
+    else:
+        await ctx.send(f"An unexpected error occurred: {error}", delete_after=10)
+        print(f"Error in listchannels command: {error}")
     try:
         await ctx.message.delete() # Try to delete the command message
     except discord.Forbidden:

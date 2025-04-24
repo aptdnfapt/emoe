@@ -125,6 +125,14 @@ The `.env` file controls the bot's core settings and customization.
     3.  `docker-compose up -d`
 *   **Uninstall:** Run `./uninstall.sh` from the `emoe` directory.
 
+## Managing Dedicated Channels
+
+The bot can be configured to respond in specific dedicated channels. These commands require administrator permissions in the Discord server.
+
+*   **`emoe addchannel #channel-name`**: Adds the mentioned channel to the list of dedicated channels. The bot will respond to messages in this channel without requiring trigger words.
+*   **`emoe removechannel #channel-name`**: Removes the mentioned channel from the list of dedicated channels. The bot will no longer automatically respond in this channel unless messages contain trigger words.
+*   **`emoe listchannels`**: Lists all channels currently configured as dedicated channels.
+
 ## hf repo
 https://huggingface.co/mradermacher/DialoGPT-large-gavin-GGUF
 ## Special Thanks:
