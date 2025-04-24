@@ -87,7 +87,99 @@ The script will:
 *   Build the bot's Docker image (if needed).
 *   Start both the bot and Ollama containers.
 
-## How it Works
+## INSTALL emoe Natively on Ubuntu 22.04 (Without Docker) (advance users)
+
+This section describes how to run the bot directly on an Ubuntu 22.04 system without using Docker.
+
+### Prerequisites (Native Install)
+
+*   **Ubuntu 22.04 System:** With user access (sudo privileges may be needed for installations) but you can go with any other linux distro the pkg manager will be different .
+*   **Git:** To clone the repository (`sudo apt update && sudo apt install git -y`).
+*   **Python 3.10 or later:** Ubuntu 22.04 usually comes with a compatible version. Check with `python3 --version`. You'll also need `pip` and `venv`. Install if missing: `sudo apt update && sudo apt install python3 python3-pip python3-venv -y`.
+*   **Ollama:** Installed locally on the system.
+*   **tmux or screen (Recommended):** To keep the bot running after you disconnect (`sudo apt update && sudo apt install tmux -y`).
+*   **Discord Bot Token:** See "Getting a Discord Bot Token" section above.
+
+### 1. Install Ollama Locally
+
+Follow the official Ollama instructions to install it on your Linux system. Usually, this involves a command like:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+Verify the installation by running `ollama --version`.
+
+### 2. Pull the Required Model
+
+Once Ollama is installed, pull the specific model used by the bot:
+
+```bash
+ollama pull hf.co/mradermacher/DialoGPT-large-gavin-GGUF:F16
+```
+
+Wait for the download to complete. You can check available models with `ollama list`. Ensure Ollama is running (it usually starts automatically as a service).
+
+### 3. Clone the Repository and Navigate
+
+```bash
+git clone https://github.com/aptdnfapt/emoe.git
+cd emoe
+```
+
+### 4. Set Up Python Virtual Environment(optional)
+
+It's recommended to use a virtual environment to manage dependencies and quickly remove the bot if you dont like it . but the pkgs are not soo huge so u can skip it too :
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+Your terminal prompt should now show `(venv)`.
+
+### 5. Install Python Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 6. Configure `.env` File
+
+Copy the example environment file and edit it:
+
+```bash
+nano .env # Or use your preferred text editor
+```
+
+*   Set `DISCORD_BOT_TOKEN` to your actual bot token.
+*   **Crucially, change `OLLAMA_API_URL` to point to your local Ollama instance.** The default is usually `http://localhost:11434`. So, ensure the line looks like:
+    ```
+    OLLAMA_API_URL=http://127.0.0.1:11434
+    ```
+
+
+### 7. Run the Bot
+
+Make sure your virtual environment is active (`source venv/bin/activate` if needed). Then, run the bot script:
+
+```bash
+python moe_bot.py
+```
+
+The bot should start, connect to Discord, and print "Emoe Bot is ready."
+
+### 8. Keep the Bot Running (Recommended: tmux)
+
+To keep the bot running after you close your terminal:
+
+1.  Start a new tmux session: `tmux new -s moe`
+2.  Activate the virtual environment: `source venv/bin/activate`
+3.  Run the bot: `python moe_bot.py`
+4.  Detach from the tmux session: Press `Ctrl+b` then `d`.
+
+The bot will continue running in the background. You can reattach to the session later using `tmux attach -t moe`.
+
+## How it Works -- {DOCKER}
 
 *   **Docker Compose (`docker-compose.yml`):** Defines and manages two services: `ollama` (running the official Ollama image) and `bot` (built using the `Dockerfile`). It sets up networking so they can communicate and configures automatic restarts (`restart: unless-stopped`).
 *   **Dockerfile:** Specifies how to build the Docker image for the Python bot, including installing dependencies from `requirements.txt`.
