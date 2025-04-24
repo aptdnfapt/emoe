@@ -217,6 +217,9 @@ The `.env` file controls the bot's core settings and customization.
     3.  `docker-compose up -d`
 *   **Uninstall:** Run `./uninstall.sh` from the `emoe` directory.
 
+*   **Anti-Spam Cooldown:** The bot has a built-in per-user cooldown of 5 seconds to prevent it from responding too rapidly to messages from the same user. Messages sent by a user within this cooldown period will be ignored.
+
+
 ## Managing Dedicated Channels (Per Server)
 
 The bot can be configured to respond in specific dedicated channels within each server. These commands require administrator permissions in the Discord server and must be run within that server.
