@@ -68,7 +68,7 @@ except Exception as e:
 
 
 # --- Configuration Files ---
-CONFIG_FILE = "bot_config.json"
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), "bot_config.json")
 LOG_FILE = "chat_log.jsonl"
 
 # --- Globals ---
@@ -311,6 +311,41 @@ async def removechannel_command_error(ctx: commands.Context, error):
     else:
         await ctx.send(f"An unexpected error occurred: {error}", delete_after=10)
         print(f"Error in removechannel command: {error}")
+    try:
+        await ctx.message.delete() # Try to delete the command message
+    except discord.Forbidden:
+        pass # Ignore if bot doesn't have permission to delete messages
+
+
+@bot.command(name="listchannels", help="Lists the dedicated channels for Emoe Bot interactions.")
+@commands.has_permissions(administrator=True) # Check for administrator permissions
+async def listchannels_command(ctx: commands.Context):
+    """Command to list dedicated channels."""
+    global dedicated_channel_ids
+    if not dedicated_channel_ids:
+        await ctx.send("No dedicated channels are currently set.", delete_after=10)
+    else:
+        channel_mentions = []
+        for channel_id in dedicated_channel_ids:
+            channel = bot.get_channel(channel_id)
+            if channel:
+                channel_mentions.append(channel.mention)
+            else:
+                channel_mentions.append(f"Unknown Channel (ID: {channel_id})")
+        await ctx.send(f"Dedicated channels: {', '.join(channel_mentions)}", delete_after=10)
+    try:
+        await ctx.message.delete() # Try to delete the command message
+    except discord.Forbidden:
+        pass # Ignore if bot doesn't have permission to delete messages
+
+@listchannels_command.error
+async def listchannels_command_error(ctx: commands.Context, error):
+    """Error handler for the listchannels command."""
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("You need administrator permissions to use this command.", delete_after=10)
+    else:
+        await ctx.send(f"An unexpected error occurred: {error}", delete_after=10)
+        print(f"Error in listchannels command: {error}")
     try:
         await ctx.message.delete() # Try to delete the command message
     except discord.Forbidden:
