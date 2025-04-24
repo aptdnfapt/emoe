@@ -6,6 +6,7 @@ import json
 import asyncio
 import re # Import regular expression module
 import random # Import random module for probability
+import time # Import time module for cooldown
 from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
@@ -73,6 +74,8 @@ LOG_FILE = "chat_log.jsonl"
 
 # --- Globals ---
 guild_configs = {} # Stores config per guild ID {guild_id: {"dedicated_channels": [id1, id2]}}
+user_last_response_time = {} # Stores the last response timestamp for each user ID
+COOLDOWN_SECONDS = 5 # Cooldown period in seconds
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
@@ -204,7 +207,7 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     """Called when a message is sent in a channel the bot can see."""
-    global guild_configs
+    global guild_configs, user_last_response_time
 
     # Ignore messages from the bot itself
     if message.author == bot.user:
@@ -219,6 +222,16 @@ async def on_message(message):
         await bot.process_commands(message) # Process potential commands
         return # Stop further processing for this message
 
+    # --- Cooldown Check ---
+    user_id = message.author.id
+    current_time = time.time()
+    last_response_time = user_last_response_time.get(user_id, 0)
+
+    if current_time - last_response_time < COOLDOWN_SECONDS:
+        # print(f"User {user_id} is on cooldown. Ignoring message.") # Optional debug print
+        return # Ignore message if user is on cooldown
+
+
     # --- Regular Message Handling (Not a command) ---
 
     # Get the dedicated channels for the current guild, if configured
@@ -232,6 +245,7 @@ async def on_message(message):
             bot_output = await get_ollama_response(user_input)
             if bot_output: # Only send and log if Ollama returned something
                 await message.reply(bot_output)
+                user_last_response_time[user_id] = current_time # Update last response time
                 log_chat(user_input, bot_output) # Log the interaction
         return # Don't process further if it was in a dedicated channel
 
@@ -243,6 +257,7 @@ async def on_message(message):
             bot_output = await get_ollama_response(user_input)
             if bot_output: # Only send and log if Ollama returned something
                 await message.reply(bot_output)
+                user_last_response_time[user_id] = current_time # Update last response time
                 log_chat(user_input, bot_output) # Log the interaction
         return
 
