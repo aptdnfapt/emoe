@@ -241,11 +241,11 @@ async def on_message(message):
     # Check if it's in one of the dedicated channels for this guild
     if message.channel.id in dedicated_channels:
         async with message.channel.typing():
+            user_last_response_time[user_id] = current_time # Update last response time immediately
             user_input = message.content
             bot_output = await get_ollama_response(user_input)
             if bot_output: # Only send and log if Ollama returned something
                 await message.reply(bot_output)
-                user_last_response_time[user_id] = current_time # Update last response time
                 log_chat(user_input, bot_output) # Log the interaction
         return # Don't process further if it was in a dedicated channel
 
@@ -254,10 +254,10 @@ async def on_message(message):
     if any(trigger in message_lower for trigger in REPLY_TRIGGERS):
         async with message.channel.typing():
             user_input = message.content
+            user_last_response_time[user_id] = current_time # Update last response time immediately
             bot_output = await get_ollama_response(user_input)
             if bot_output: # Only send and log if Ollama returned something
                 await message.reply(bot_output)
-                user_last_response_time[user_id] = current_time # Update last response time
                 log_chat(user_input, bot_output) # Log the interaction
         return
 
