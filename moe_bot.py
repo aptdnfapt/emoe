@@ -71,10 +71,12 @@ except Exception as e:
 # --- Configuration Files ---
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "bot_config.json") # Path relative to script
 LOG_FILE = "chat_log.jsonl"
+MAX_HISTORY_PROMPTS = 5 # Number of user/assistant pairs to keep in history
 
 # --- Globals ---
 guild_configs = {} # Stores config per guild ID {guild_id: {"dedicated_channels": [id1, id2]}}
 user_last_response_time = {} # Stores the last response timestamp for each user ID
+conversation_history = {} # Stores message history per channel {channel_id: [{"role": "user/assistant", "content": "..."}, ...]}
 COOLDOWN_SECONDS = 5 # Cooldown period in seconds
 intents = discord.Intents.default()
 intents.messages = True
@@ -123,18 +125,18 @@ def log_chat(instruction, output):
 
 
 # --- Ollama Interaction ---
-# (Keep the Ollama function as is)
-async def get_ollama_response(prompt):
-    """Sends prompt to Ollama and returns the generated response."""
+async def get_ollama_response(messages):
+    """Sends message history to Ollama chat endpoint and returns the generated response."""
     if not OLLAMA_API_URL:
         print("Error: OLLAMA_API_URL environment variable not set.")
         return "Sorry, my connection to the language model is not configured."
 
-    api_endpoint = f"{OLLAMA_API_URL}/api/generate"
+    # Use the /api/chat endpoint for conversational context
+    api_endpoint = f"{OLLAMA_API_URL}/api/chat"
     payload = {
         "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "stream": True # Use streaming for potentially long responses
+        "messages": messages, # Send the list of message objects
+        "stream": True
     }
 
     try:
@@ -149,17 +151,16 @@ async def get_ollama_response(prompt):
             if line:
                 try:
                     data = json.loads(line.decode('utf-8'))
-                    if 'response' in data and not data.get('done', False):
-                        response_text += data['response']
+                    # For /api/chat, the response content is in message.content
+                    if 'message' in data and 'content' in data['message'] and not data.get('done', False):
+                        response_text += data['message']['content']
                     elif data.get('done', False):
-                        # Optionally process final context if needed
-                        # final_context = data.get('context')
                         break # Exit loop when generation is done
                 except json.JSONDecodeError:
                     print(f"Warning: Could not decode JSON line: {line}")
                     continue # Skip malformed lines
 
-        modified_response = response_text
+        modified_response = response_text.strip() # Strip leading/trailing whitespace from the combined response
 
         # Apply probabilistic replacements first
         if probabilistic_rules:
@@ -207,7 +208,7 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     """Called when a message is sent in a channel the bot can see."""
-    global guild_configs, user_last_response_time
+    global guild_configs, user_last_response_time, conversation_history
 
     # Ignore messages from the bot itself
     if message.author == bot.user:
@@ -234,32 +235,52 @@ async def on_message(message):
 
     # --- Regular Message Handling (Not a command) ---
 
-    # Get the dedicated channels for the current guild, if configured
+    # --- Regular Message Handling (Not a command) ---
     guild_id = message.guild.id
+    channel_id = message.channel.id
     dedicated_channels = guild_configs.get(guild_id, {}).get("dedicated_channels", [])
 
-    # Check if it's in one of the dedicated channels for this guild
-    if message.channel.id in dedicated_channels:
-        async with message.channel.typing():
-            user_last_response_time[user_id] = current_time # Update last response time immediately
-            user_input = message.content
-            bot_output = await get_ollama_response(user_input)
-            if bot_output: # Only send and log if Ollama returned something
-                await message.reply(bot_output)
-                log_chat(user_input, bot_output) # Log the interaction
-        return # Don't process further if it was in a dedicated channel
+    # Determine if the bot should respond (in dedicated channel or triggered)
+    should_respond = False
+    if channel_id in dedicated_channels:
+        should_respond = True
+    else:
+        message_lower = message.content.lower()
+        if any(trigger in message_lower for trigger in REPLY_TRIGGERS):
+            should_respond = True
 
-    # If not in a dedicated channel for this guild, check for trigger words (optional, keep if desired)
-    message_lower = message.content.lower()
-    if any(trigger in message_lower for trigger in REPLY_TRIGGERS):
+    if should_respond:
         async with message.channel.typing():
-            user_input = message.content
             user_last_response_time[user_id] = current_time # Update last response time immediately
-            bot_output = await get_ollama_response(user_input)
-            if bot_output: # Only send and log if Ollama returned something
+            user_input = message.content
+
+            # --- History Management ---
+            # Get or initialize history for this channel
+            channel_history = conversation_history.setdefault(channel_id, [])
+
+            # Create the message list for Ollama
+            current_message = {"role": "user", "content": user_input}
+            messages_to_send = channel_history + [current_message]
+
+            # Call Ollama with the history
+            bot_output = await get_ollama_response(messages_to_send)
+
+            if bot_output: # Only send, log, and update history if Ollama returned something
                 await message.reply(bot_output)
                 log_chat(user_input, bot_output) # Log the interaction
-        return
+
+                # Add user message and bot response to history
+                channel_history.append(current_message)
+                channel_history.append({"role": "assistant", "content": bot_output})
+
+                # Trim history if it exceeds the limit (MAX_HISTORY_PROMPTS pairs = * 2 messages)
+                max_len = MAX_HISTORY_PROMPTS * 2
+                if len(channel_history) > max_len:
+                    # Keep only the last max_len messages
+                    conversation_history[channel_id] = channel_history[-max_len:]
+                    # print(f"Trimmed history for channel {channel_id} to {max_len} messages.") # Optional debug print
+
+        return # Stop processing after handling the response
 
 # --- Discord Prefix Commands ---
 # Helper function to get guild-specific dedicated channels
@@ -396,4 +417,3 @@ if __name__ == "__main__":
     else:
         print("Starting Emoe Bot...")
         bot.run(DISCORD_BOT_TOKEN)
-
